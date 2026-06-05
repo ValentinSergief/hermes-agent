@@ -24,12 +24,6 @@
 
 ### Install with Hermes (recommended)
 
-Add `--include-desktop` to the [one-line installer](../../README.md#quick-install) and it sets up the agent and builds the desktop app in one go:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash -s -- --include-desktop
-```
-
 Already have the Hermes CLI? Just run:
 
 ```bash
