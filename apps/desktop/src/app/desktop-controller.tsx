@@ -666,6 +666,17 @@ export function DesktopController() {
     }
   }, [gatewayState, refreshCronJobs])
 
+  // Watch HERMES_HOME/state.db for writes from cron jobs and gateway sessions.
+  // Uses an event-driven fs.watch (electon main process) so the sidebar
+  // refreshes instantly — no polling interval needed.
+  useEffect(() => {
+    window.hermesDesktop.watchSessions()
+    const unsub = window.hermesDesktop.onSessionsChanged(() => {
+      void refreshSessions()
+    })
+    return () => unsub()
+  }, [refreshSessions])
+
   useRouteResume({
     activeSessionId,
     activeSessionIdRef,

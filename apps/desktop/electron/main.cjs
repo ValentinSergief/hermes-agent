@@ -2948,6 +2948,54 @@ function filePathFromPreviewUrl(rawUrl) {
   return filePath
 }
 
+function sendSessionsChanged() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  const { webContents } = mainWindow
+  if (!webContents || webContents.isDestroyed()) return
+  webContents.send('hermes:sessions-changed')
+}
+
+// ── Session DB watcher ──────────────────────────────────────────────────────
+//
+// Note: fs.watch on a single file works on macOS + Linux.
+// On Windows, some setups require watching the parent directory.
+// If reports surface, switch to: fs.watch(HERMES_HOME, (_, f) =>
+//   f === 'state.db' && handler()) — matching watchPreviewFile pattern.
+// (Discord, Telegram, etc.) so the Desktop sidebar refreshes instantly instead
+// of waiting for a polling interval.  Debounce by 300ms to coalesce SQLite
+// WAL-mode checkpoint bursts — a single cron completion may fire the watcher
+// 3–8 times as state.db-wal → state.db-shm → state.db get written in sequence.
+//
+// Note: fs.watch on a single file works on macOS + Linux.
+// On Windows, some setups require watching the parent directory.
+// If reports surface, switch to: fs.watch(HERMES_HOME, (_, f) =>
+//   f === 'state.db' && tick()) — matching watchPreviewFile pattern.
+
+const SESSION_WATCH_DEBOUNCE_MS = 300
+let sessionWatcher = null
+
+function ensureSessionWatcher() {
+  if (sessionWatcher) return
+  const stateDbPath = path.join(HERMES_HOME, 'state.db')
+
+  if (!fs.existsSync(stateDbPath)) return
+
+  let timer = null
+  sessionWatcher = fs.watch(stateDbPath, () => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      timer = null
+      sendSessionsChanged()
+    }, SESSION_WATCH_DEBOUNCE_MS)
+  })
+}
+
+function closeSessionWatcher() {
+  if (!sessionWatcher) return
+  sessionWatcher.close()
+  sessionWatcher = null
+}
+
 function sendPreviewFileChanged(payload) {
   if (!mainWindow || mainWindow.isDestroyed()) return
   const { webContents } = mainWindow
@@ -5247,6 +5295,11 @@ ipcMain.handle('hermes:watchPreviewFile', (_event, url) => watchPreviewFile(Stri
 
 ipcMain.handle('hermes:stopPreviewFileWatch', (_event, id) => stopPreviewFileWatch(String(id || '')))
 
+// Start watching HERMES_HOME/state.db for session changes from
+// cron jobs and gateway sessions. Instant, event-driven refresh
+// — no polling needed.
+ipcMain.on('hermes:watchSessions', () => ensureSessionWatcher())
+
 ipcMain.on('hermes:titlebar-theme', (_event, payload) => {
   if (!payload || !isHexColor(payload.background) || !isHexColor(payload.foreground)) {
     return
@@ -5875,6 +5928,7 @@ app.on('before-quit', () => {
   }
   flushDesktopLogBufferSync()
   closePreviewWatchers()
+  closeSessionWatcher()
 
   if (hermesProcess && !hermesProcess.killed) {
     hermesProcess.kill('SIGTERM')
