@@ -259,8 +259,7 @@ export function useMessageStream({
   queryClient,
   refreshHermesConfig,
   refreshSessions,
-  sessionStateByRuntimeIdRef,
-  updateSessionState
+  sessionStateByRuntimeIdRef,  updateSessionState
 }: MessageStreamOptions) {
   const sessionInterrupted = useCallback(
     (sessionId: string) => sessionStateByRuntimeIdRef.current.get(sessionId)?.interrupted ?? false,
@@ -1134,8 +1133,7 @@ export function useMessageStream({
       flushQueuedDeltas,
       queryClient,
       refreshHermesConfig,
-      sessionInterrupted,
-      updateSessionState,
+      sessionInterrupted,      updateSessionState,
       upsertToolCall
     ]
   )
