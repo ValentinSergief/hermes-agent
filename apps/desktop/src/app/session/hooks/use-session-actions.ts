@@ -744,6 +744,10 @@ export function useSessionActions({
         }
 
         const currentMessages = $messages.get()
+        const resumedMessages = preserveLocalAssistantErrors(
+          reconcileResumeMessages(toChatMessages(resumed.messages), currentMessages),
+          currentMessages
+        )
 
         // Keep the local snapshot when resume would only reshuffle runtime
         // projection. When the REST prefetch already hydrated the transcript,
@@ -753,14 +757,7 @@ export function useSessionActions({
         const preferredMessages =
           localSnapshot.length > resumedMessages.length
             ? localSnapshot
-            : (() => {
-                const resumedMessages = preserveLocalAssistantErrors(
-                  reconcileResumeMessages(toChatMessages(resumed.messages), currentMessages),
-                  currentMessages
-                )
-
-                return chatMessageArraysEquivalent(currentMessages, resumedMessages) ? currentMessages : resumedMessages
-              })()
+            : chatMessageArraysEquivalent(currentMessages, resumedMessages) ? currentMessages : resumedMessages
 
         const messagesForView = preserveLocalAssistantErrors(preferredMessages, currentMessages)
 

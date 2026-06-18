@@ -258,7 +258,7 @@ function CronJobSidebarRow({
       ? relativeTime(jobStartRef.current, nowMs)
       : next !== null
         ? relativeTime(next, nowMs)
-        : '—' (fix(desktop): restore stable cron jobs position, compact strip, balanced spacing, running dot)
+        : '—'
 
   return (
     <div>
